@@ -23,7 +23,13 @@ const adminSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: ["superadmin", "admin", "editor"],
-      default: "editor", // ← also needs quotes
+      default: "editor",
+    },
+
+    token: {
+      // ← NEW: stores the JWT created at registration
+      type: String,
+      select: false, // never returned by default
     },
 
     isActive: { type: Boolean, default: true },
@@ -33,16 +39,16 @@ const adminSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// Hash Password before saving
-adminSchema.pre("save", async function (next) {
-  if (!this.modified("password")) return next();
+// Hash password before saving
+adminSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
 
 // Compare password method
-adminSchema.methods.comparePassword = async function (CandidatePassword) {
-  return bcrypt.compare(CandidatePassword, this.password);
+adminSchema.methods.comparePassword = async function (candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
-export default adminSchema;
+const Admin = mongoose.model("Admin", adminSchema);
+export default Admin;

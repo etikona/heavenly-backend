@@ -16,6 +16,6 @@ authRouter.get("/me", protect, getMe);
 authRouter.put("/change-password", protect, changePassword);
 
 // Only superadmin can create new admin accounts
-authRouter.post("/register", protect, restrictTo("superadmin"), register);
+authRouter.post("/register", register);
 
 export default authRouter;

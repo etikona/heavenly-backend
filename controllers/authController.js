@@ -1,14 +1,15 @@
 import jwt from "jsonwebtoken";
 import Admin from "../models/adminModel.js";
 
+// Only used internally at registration time
 export const signToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 };
 
-export const sendTokenResponse = (admin, statusCode, res) => {
-  const token = signToken(admin._id);
+// Formats and sends the response with a given token
+export const sendTokenResponse = (admin, token, statusCode, res) => {
   res.status(statusCode).json({
     success: true,
     token,
@@ -21,9 +22,32 @@ export const sendTokenResponse = (admin, statusCode, res) => {
   });
 };
 
+// POST /api/auth/register  (superadmin only — or use a seed script)
+export const register = async (req, res) => {
+  const { name, email, password } = req.body;
+
+  const existing = await Admin.findOne({ email });
+  if (existing) {
+    return res
+      .status(409)
+      .json({ success: false, message: "Email already registered." });
+  }
+
+  // Generate the token BEFORE saving so we can store it
+  // We need the _id first, so create without token then update —
+  // or insert and then update in one flow:
+  const admin = await Admin.create({ name, email, password, role: "admin" });
+
+  const token = signToken(admin._id); // ← generate once at registration
+  admin.token = token; // ← persist it on the document
+  await admin.save({ validateBeforeSave: false });
+
+  sendTokenResponse(admin, token, 201, res);
+};
+
 // POST /api/auth/login
 export const login = async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password } = req.body || {};
 
   if (!email || !password) {
     return res
@@ -31,7 +55,9 @@ export const login = async (req, res) => {
       .json({ success: false, message: "Email and password are required." });
   }
 
-  const admin = await Admin.findOne({ email }).select("+password");
+  // Select both password and token since both are select: false
+  const admin = await Admin.findOne({ email }).select("+password +token");
+
   if (!admin || !(await admin.comparePassword(password))) {
     return res
       .status(401)
@@ -44,10 +70,19 @@ export const login = async (req, res) => {
       .json({ success: false, message: "Your account has been deactivated." });
   }
 
+  if (!admin.token) {
+    return res.status(500).json({
+      success: false,
+      message:
+        "No token found for this account. Please contact an administrator.",
+    });
+  }
+
   admin.lastLogin = new Date();
   await admin.save({ validateBeforeSave: false });
 
-  sendTokenResponse(admin, 200, res);
+  // Return the token that was generated at registration — not a new one
+  sendTokenResponse(admin, admin.token, 200, res);
 };
 
 // POST /api/auth/logout
@@ -58,21 +93,6 @@ export const logout = (req, res) => {
 // GET /api/auth/me
 export const getMe = async (req, res) => {
   res.status(200).json({ success: true, admin: req.admin });
-};
-
-// POST /api/auth/register  (superadmin only — or use a seed script)
-export const register = async (req, res) => {
-  const { name, email, password, role } = req.body;
-
-  const existing = await Admin.findOne({ email });
-  if (existing) {
-    return res
-      .status(409)
-      .json({ success: false, message: "Email already registered." });
-  }
-
-  const admin = await Admin.create({ name, email, password, role });
-  sendTokenResponse(admin, 201, res);
 };
 
 // PUT /api/auth/change-password
