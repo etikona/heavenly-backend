@@ -26,7 +26,7 @@ projectRouter.get("/slug/:slug", getProjectBySlug);
 
 // ── Admin routes ───────────────────────────────────────────────────────────
 projectRouter.get("/admin/all", protect, getAllProjectsAdmin);
-projectRouter.get("/admin/:id", protect, getProjectById);
+projectRouter.get("/:id", protect, getProjectById);
 projectRouter.post("/", protect, createProject);
 projectRouter.put("/:id", protect, updateProject);
 projectRouter.delete("/:id", protect, deleteProject);

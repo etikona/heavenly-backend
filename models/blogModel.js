@@ -31,7 +31,6 @@ blogSchema.pre("save", function (next) {
   if (this.isModified("isPublished") && this.isPublished && !this.publishedAt) {
     this.publishedAt = new Date();
   }
-  next();
 });
 
 // Text index for search
@@ -39,4 +38,4 @@ blogSchema.index({ title: "text", content: "text", tags: "text" });
 
 // module.exports = mongoose.model("Blog", blogSchema);
 
-export default blogSchema;
+export default mongoose.model("Blog", blogSchema);

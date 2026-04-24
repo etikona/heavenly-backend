@@ -95,6 +95,7 @@ export const getAllProjectsAdmin = async (req, res) => {
 // GET /api/projects/admin/:id
 export const getProjectById = async (req, res) => {
   const project = await Project.findById(req.params.id);
+  console.log(project);
   if (!project) {
     return res
       .status(404)

@@ -68,7 +68,7 @@ projectSchema.pre("save", function (next) {
     const slugify = require("slugify");
     this.slug = slugify(this.title, { lower: true, strict: true });
   }
-  next();
+  // next();
 });
 
 // module.exports = mongoose.model("Project", projectSchema);
