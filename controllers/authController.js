@@ -8,8 +8,8 @@ export const signToken = (id) => {
   });
 };
 
-// Formats and sends the response with a given token
-export const sendTokenResponse = (admin, token, statusCode, res) => {
+export const sendTokenResponse = (admin, statusCode, res) => {
+  const token = signToken(admin._id); // ✅ fresh token every time
   res.status(statusCode).json({
     success: true,
     token,
@@ -26,23 +26,23 @@ export const sendTokenResponse = (admin, token, statusCode, res) => {
 export const register = async (req, res) => {
   const { name, email, password } = req.body;
 
-  const existing = await Admin.findOne({ email });
-  if (existing) {
-    return res
-      .status(409)
-      .json({ success: false, message: "Email already registered." });
+  if (!name || !email || !password) {
+    return res.status(400).json({
+      success: false,
+      message: "Name, email and password are required.",
+    });
   }
 
-  // Generate the token BEFORE saving so we can store it
-  // We need the _id first, so create without token then update —
-  // or insert and then update in one flow:
+  const existing = await Admin.findOne({ email });
+  if (existing) {
+    return res.status(409).json({
+      success: false,
+      message: "Email already registered.",
+    });
+  }
+
   const admin = await Admin.create({ name, email, password, role: "admin" });
-
-  const token = signToken(admin._id); // ← generate once at registration
-  admin.token = token; // ← persist it on the document
-  await admin.save({ validateBeforeSave: false });
-
-  sendTokenResponse(admin, token, 201, res);
+  sendTokenResponse(admin, 201, res); // ✅ token generated here
 };
 
 // POST /api/auth/login
@@ -50,39 +50,32 @@ export const login = async (req, res) => {
   const { email, password } = req.body || {};
 
   if (!email || !password) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Email and password are required." });
+    return res.status(400).json({
+      success: false,
+      message: "Email and password are required.",
+    });
   }
 
-  // Select both password and token since both are select: false
-  const admin = await Admin.findOne({ email }).select("+password +token");
+  const admin = await Admin.findOne({ email }).select("+password"); // ✅ no need to select +token anymore
 
   if (!admin || !(await admin.comparePassword(password))) {
-    return res
-      .status(401)
-      .json({ success: false, message: "Invalid email or password." });
+    return res.status(401).json({
+      success: false,
+      message: "Invalid email or password.",
+    });
   }
 
   if (!admin.isActive) {
-    return res
-      .status(403)
-      .json({ success: false, message: "Your account has been deactivated." });
-  }
-
-  if (!admin.token) {
-    return res.status(500).json({
+    return res.status(403).json({
       success: false,
-      message:
-        "No token found for this account. Please contact an administrator.",
+      message: "Your account has been deactivated.",
     });
   }
 
   admin.lastLogin = new Date();
   await admin.save({ validateBeforeSave: false });
 
-  // Return the token that was generated at registration — not a new one
-  sendTokenResponse(admin, admin.token, 200, res);
+  sendTokenResponse(admin, 200, res); // ✅ fresh token generated on every login
 };
 
 // POST /api/auth/logout

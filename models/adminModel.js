@@ -26,11 +26,11 @@ const adminSchema = new mongoose.Schema(
       default: "editor",
     },
 
-    token: {
-      // ← NEW: stores the JWT created at registration
-      type: String,
-      select: false, // never returned by default
-    },
+    // token: {
+    //   // ← NEW: stores the JWT created at registration
+    //   type: String,
+    //   select: false, // never returned by default
+    // },
 
     isActive: { type: Boolean, default: true },
 
