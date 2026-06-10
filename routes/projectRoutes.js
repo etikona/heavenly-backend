@@ -23,6 +23,7 @@ import {
 const projectRouter = Router();
 projectRouter.get("/", getProjects);
 projectRouter.get("/slug/:slug", getProjectBySlug);
+projectRouter.get("/:id", getProjectById);
 
 // ── Admin routes ───────────────────────────────────────────────────────────
 projectRouter.get("/admin/all", protect, getAllProjectsAdmin);

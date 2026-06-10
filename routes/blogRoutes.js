@@ -18,7 +18,7 @@ const blogRouter = Router();
 blogRouter.get("/", getBlogs);
 blogRouter.get("/tags", getAllTags);
 blogRouter.get("/slug/:slug", getBlogBySlug);
-
+blogRouter.get("/:id", getBlogById);
 // ── Admin ────────────────────────────────────────────────────────────────────
 blogRouter.get("/admin/all", protect, getAllBlogsAdmin);
 blogRouter.get("/admin/:id", protect, getBlogById);
